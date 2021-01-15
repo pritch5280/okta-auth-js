@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.7.0
+
+### Other
+
+- [#594](https://github.com/okta/okta-auth-js/pull/594) Adds `@babel/runtime` to dependencies list.
+
 ## 4.6.0
 
 ### Features
