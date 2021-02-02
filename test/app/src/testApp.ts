@@ -20,7 +20,8 @@ import {
   OktaAuthOptions, 
   AccessToken, 
   AuthTransaction, 
-  TokenParams
+  TokenParams,
+  isInteractionRequiredError
 } from '@okta/okta-auth-js';
 import { saveConfigToStorage, flattenConfig, Config } from './config';
 import { MOUNT_PATH } from './constants';
@@ -200,9 +201,9 @@ class TestApp {
       .then(() => this.render());
   }
 
-  render(): Promise<void> {
-    return this.oktaAuth.tokenManager.getTokens()
-    .catch((e) => {
+  render(forceUnauth = false): Promise<void> {
+    const p = forceUnauth ? Promise.resolve({}) : this.oktaAuth.tokenManager.getTokens();
+    return p.catch((e) => {
       this.renderError(e);
       throw e;
     })
@@ -419,15 +420,25 @@ class TestApp {
 
   async handleCallback(): Promise<void> {
     return this.getTokensFromUrl()
-      .catch(e => {
+      .then(res => {
+        return this.renderCallback(res);
+      }, e => {
+        if (isInteractionRequiredError(e)) {
+          return this.renderInteractionRequired();
+        }
         this.renderError(e);
         throw e;
-      })
-      .then(res => {
-        return this.callbackHTML(res);
-      })
+      });
+  }
+
+  async renderCallback(res: TokenResponse): Promise<void> {
+    return Promise.resolve(this.callbackHTML(res))
       .then(content => this._setContent(content))
       .then(() => this._afterRender('callback-handled'));
+  }
+
+  async renderInteractionRequired(): Promise<void> {
+    return this.render(true).then(() => this.loginWidget());
   }
 
   async getTokensFromUrl(): Promise<TokenResponse> {
