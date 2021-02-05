@@ -135,8 +135,11 @@ class TestApp {
   rootElem?: Element;
   contentElem?: Element;
   oktaAuth?: OktaAuth;
+  getCount?: number;
+
   constructor(config: Config) {
     this.config = config;
+    this.getCount = 0;
   }
 
   // Mount into the DOM
@@ -149,22 +152,34 @@ class TestApp {
     document.getElementById('config-dump').innerHTML = this.configHTML();
     this.contentElem = document.getElementById('page-content');
     bindFunctions(this, window);
-    const widgetVersion = this.config._siwVersion;
-    injectWidgetFromCDN(widgetVersion);
   }
 
-  getSDKInstance({ subscribeAuthStateChange }: GetSDKInstanceOptions = { subscribeAuthStateChange: true }): Promise<void> {
-    return Promise.resolve()
-      .then(() => {
-        // can throw
-        this.oktaAuth = this.oktaAuth || new OktaAuth(Object.assign({}, this.config, {
-          scopes: this.config._defaultScopes ? [] : this.config.scopes
-        }));
-        this.oktaAuth.tokenManager.on('error', this._onTokenError.bind(this));
-        if (subscribeAuthStateChange) {
-          this.oktaAuth.authStateManager.subscribe(this.render.bind(this));
-        }
-      });
+  async getSDKInstance(/*{ subscribeAuthStateChange }: GetSDKInstanceOptions = { subscribeAuthStateChange: true }*/): Promise<OktaAuth> {
+
+    // can throw
+    this.oktaAuth = this.oktaAuth || new OktaAuth(Object.assign({}, this.config, {
+      scopes: this.config._defaultScopes ? [] : this.config.scopes
+    }));
+    return this.oktaAuth;
+
+    // this.getCount++;
+    // const curCount = this.getCount;
+    // return Promise.resolve()
+    //   .then(() => {
+    //     // can throw
+    //     this.oktaAuth = this.oktaAuth || new OktaAuth(Object.assign({}, this.config, {
+    //       scopes: this.config._defaultScopes ? [] : this.config.scopes
+    //     }));
+    //     // this.oktaAuth.tokenManager.on('error', this._onTokenError.bind(this));
+    //     // if (subscribeAuthStateChange) {
+    //     //   this.oktaAuth.authStateManager.subscribe(() => {
+    //     //     console.log('event change, from getCall: ', curCount);
+    //     //     debugger;
+    //     //   });
+            
+    //         //this.render.bind(this));
+    //     // }
+    //   });
   }
 
   _setContent(content: string): void {
@@ -190,7 +205,7 @@ class TestApp {
       <hr/>
       ${homeLink(this)}
     `;
-    return this.getSDKInstance({ subscribeAuthStateChange: false })
+    return this.getSDKInstance(/*{ subscribeAuthStateChange: false }*/)
       .then(() => this._setContent(content))
       .then(() => this._afterRender('callback'));
   }
@@ -234,6 +249,7 @@ class TestApp {
   }
 
   loginWidget(): void {
+    injectWidgetFromCDN(this.config._siwVersion);
     saveConfigToStorage(this.config);
     document.getElementById('modal').style.display = 'block';
     const widgetConfig = window.getWidgetConfig();
