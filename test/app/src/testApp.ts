@@ -114,19 +114,23 @@ function bindFunctions(testApp: TestApp, window: Window): void {
   });
 }
 
-function injectWidgetFromCDN(widgetVersion: string): void {
-  // inject script
-  const script = document.createElement('script');
-  script.type = 'text/javascript';
-  script.src = `https://global.oktacdn.com/okta-signin-widget/${widgetVersion}/js/okta-sign-in.min.js`;    
-  document.getElementsByTagName('head')[0].appendChild(script);
+async function injectWidgetFromCDN(widgetVersion: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // inject CSS
+    const link = document.createElement('link');
+    link.type='text/css';
+    link.rel='stylesheet';
+    link.href = `https://global.oktacdn.com/okta-signin-widget/${widgetVersion}/css/okta-sign-in.min.css`;
+    document.getElementsByTagName('head')[0].appendChild(link);
 
-  // inject CSS
-  const link = document.createElement('link');
-  link.type='text/css';
-  link.rel='stylesheet';
-  link.href = `https://global.oktacdn.com/okta-signin-widget/${widgetVersion}/css/okta-sign-in.min.css`;
-  document.getElementsByTagName('head')[0].appendChild(link);
+    // inject script
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    document.getElementsByTagName('head')[0].appendChild(script);
+    script.onload = () => { resolve() };
+    script.onerror = (e) => { reject(e); };
+    script.src = `https://global.oktacdn.com/okta-signin-widget/${widgetVersion}/js/okta-sign-in.min.js`;
+  }); 
 }
 
 class TestApp {
@@ -248,8 +252,8 @@ class TestApp {
     this._afterRender('with-error');
   }
 
-  loginWidget(): void {
-    injectWidgetFromCDN(this.config._siwVersion);
+  async loginWidget(): Promise<void> {
+    await injectWidgetFromCDN(this.config._siwVersion);
     saveConfigToStorage(this.config);
     document.getElementById('modal').style.display = 'block';
     const widgetConfig = window.getWidgetConfig();
